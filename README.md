@@ -79,8 +79,8 @@ The kind of output your makefile produces depends on the extension in
 * `.dll` for a dynamic library
 
 The build commands for each case are defined in build environment
-configurations, e.g. `config.gnu.mk`, by variables called `LINK.exe`,
-`LINK.lib` and `LINK.dll`. The actual extension being used are also
+configurations, e.g. `config.gnu.mk`, by variables called `MAKE_EXE`,
+`MAKE_LIB` and `MAKE_DLL`. The actual extension being used are also
 defined in the same file, as `EXT.exe`, `EXT.lib` and `EXT.dll`. For
 example, on Linux, `EXT.lib` is set to `.a`.
 
@@ -133,7 +133,7 @@ The output of the build will be located by default in the top-level
 directory for the build, or the directory specified by the `OUTPUT`
 environment variable if it's set.
 
-Temoprary files are placed in the `.build` directory, or the
+TemopraryTemoprary files are placed in the `.build` directory, or the
 directory set by the `BUILD` environment variable if it's set.
 There are subdirectories corresponding to the build environment and
 the build target, so the final product could be for instance under

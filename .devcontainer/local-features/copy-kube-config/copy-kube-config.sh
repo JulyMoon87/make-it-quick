@@ -10,7 +10,7 @@ if [ "$SYNC_LOCALHOST_KUBECONFIG" = "true" ] && [ -d "/usr/local/share/kube-loca
     sed -i -e "s/127.0.0.1/host.docker.internal/g" $HOME/.kube/config
 
     # If .minikube was mounted, set up client cert/key
-    if [ -d "/usr/local/share/minikube-localhost" ]; then
+    if [ -d "/usrusr/local/share/minikube-localhost" ]; then
         mkdir -p $HOME/.minikube
         sudo cp -r /usr/local/share/minikube-localhost/ca.crt $HOME/.minikube
         # Location varies between versions of minikube

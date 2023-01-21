@@ -88,8 +88,21 @@ MIQ_LDFLAGS=	$(LDFLAGS)				\
 
 MIQ_PACKAGE= 	$(PACKAGE_NAME:%=$(MIQ_OBJDIR)%.pc)
 
-MIQ_DOINSTALL=	$(foreach i,$(INSTALLABLE),$(WARE.$i:%=%.$(DO_INSTALL).$i))
-MIQ_INSTALL=	$(DO_INSTALL:%=$(MIQ_DOINSTALL))
+MIQ_INSTALL=	$(TO_INSTALL:%=%.$(DO_INSTALL))		\
+		$(MIQ_OUTEXE:%=%.$(DO_INSTALL)_exe)	\
+		$(MIQ_OUTLIB:%=%.$(DO_INSTALL)_lib)	\
+		$(MIQ_OUTDLL:%=%.$(DO_INSTALL)_dll)	\
+		$(EXE_INSTALL:%=%.$(DO_INSTALL)_exe)	\
+		$(LIB_INSTALL:%=%.$(DO_INSTALL)_lib)	\
+		$(DLL_INSTALL:%=%.$(DO_INSTALL)_dll)	\
+		$(HEADERS:%=%.$(DO_INSTALL)_hdr)	\
+		$(HDR_INSTALL:%=%.$(DO_INSTALL)_hdr)	\
+		$(SHR_INSTALL:%=%.$(DO_INSTALL)_shr)	\
+		$(DOC_INSTALL:%=%.$(DO_INSTALL)_doc)	\
+		$(MANPAGES:%=%.gz.$(DO_INSTALL)_man)	\
+		$(MAN_INSTALL:%=%.gz.$(DO_INSTALL)_man)	\
+		$(ETC_INSTALL:%=%.$(DO_INSTALL)_etc)	\
+		$(MIQ_PACKAGE:%=%.$(DO_INSTALL)_pc)
 
 MIQ_SOURCES=	$(SOURCES)				\
 		$(SOURCES_BUILDENV_$(BUILDENV))		\
@@ -98,7 +111,7 @@ MIQ_SOURCES=	$(SOURCES)				\
 		$(MIQ_OUT_SOURCES)
 
 # Automatically put the man pages in the correct section
-MIQ_MANDIR=	$(PACKAGE_INSTALL.man)man$(MIQ_MANSECT)/
+MIQ_MANDIR=	$(PACKAGE_INSTALL_MAN)man$(MIQ_MANSECT)/
 MIQ_MANSECT=	$(subst .,,$(suffix $(*:.gz=)))
 
 ifndef MIQ_DIR
@@ -250,9 +263,9 @@ help:
 	.postbuild $(RUN_TESTS:%=.tests) .goodbye
 
 .hello:
-	@$(INFO) "[BEGIN]" "$(TARGET) $(BUILDENV) in $(MIQ_PRETTYDIR)"
+	@$(INFO) "[BEGIN]" $(TARGET) $(BUILDENV) in "$(MIQ_PRETTYDIR)"
 .goodbye:
-	@$(INFO) "[END]" "$(TARGET) $(BUILDENV) in $(MIQ_PRETTYDIR)"
+	@$(INFO) "[END]" $(TARGET) $(BUILDENV) in "$(MIQ_PRETTYDIR)"
 
 # Sequencing build steps and build step hooks
 .config: .hello
@@ -267,8 +280,8 @@ endif
 .objects: .prebuild
 .objects: $(MIQ_OBJDIR:%=%.mkdir)
 .product: $(MIQ_OUTPRODS)
-.postbuild: .product $(DO_INSTALL:%=.install)
-.install: $(MIQ_INSTALL)
+.postbuild: .product .install
+.install: $(DO_INSTALL:%=$(MIQ_INSTALL))
 .tests: $(TESTS:%=%.test)
 .goodbye: .postbuild
 
@@ -379,16 +392,15 @@ MIQ_PRINTCOUNT=	$(shell printf "%3d/%d" $(MIQ_INDEX) $(MIQ_COUNT))$(MIQ_INCRIDX)
 ifndef V
 PRINT_COMMAND= 	@
 PRINT_COMPILE=	$(PRINT_COMMAND) $(INFO) "[COMPILE$(MIQ_PRINTCOUNT)] " $<;
-PRINT_LINK= 	$(PRINT_COMMAND) $(INFO) "[LINK]" $(shell basename $@);
-PRINT_GENERATE= $(PRINT_COMMAND) $(INFO) "[GENERATE]" "$(shell basename "$@")" $(COLORIZE);
+PRINT_BUILD= 	$(PRINT_COMMAND) $(INFO) "[BUILD]" $(shell basename $@);
+PRINT_GENERATE= $(PRINT_COMMAND) $(INFO) "[GENERATE]" "$(shell basename "$@")";
 PRINT_VARIANT=  $(PRINT_COMMAND) $(INFO) "[VARIANT]" "$*";
-PRINT_INSTALL=  $(PRINT_COMMAND) $(INFO) "[INSTALL]" "$(@F) => $(@D)/" $(COLORIZE);
-PRINT_UNINSTALL=$(PRINT_COMMAND) $(INFO) "[UNINSTALL] " "$(*F)" $(COLORIZE);
-PRINT_CLEAN=    $(PRINT_COMMAND) $(INFO) "[CLEAN] " "$@ $(MIQ_PRETTYDIR)" $(COLORIZE);
-PRINT_COPY=     $(PRINT_COMMAND) $(INFO) "[COPY]" "$< '=>' $@" ;
-PRINT_DEPEND= 	$(PRINT_COMMAND) $(INFO) "[DEPEND] " "$<" ;
-PRINT_TEST= 	$(PRINT_COMMAND) $(INFO_NONL) "[TEST]" "$(@:.test=)";
-PRINT_RESULT= 	$(PRINT_COMMAND) $(INFO) "[TEST]" "$(@:.test=)" "[$(shell cat $*.result)]" $(COLORIZE);
+PRINT_INSTALL=  $(PRINT_COMMAND) $(INFO) "[INSTALL] " $(*F) in $(<D) $(COLORIZE);
+PRINT_UNINSTALL=$(PRINT_COMMAND) $(INFO) "[UNINSTALL] " $(*F) $(COLORIZE);
+PRINT_CLEAN=    $(PRINT_COMMAND) $(INFO) "[CLEAN] " $@ $(MIQ_PRETTYDIR) $(COLORIZE);
+PRINT_COPY=     $(PRINT_COMMAND) $(INFO) "[COPY]" $< '=>' $@ ;
+PRINT_DEPEND= 	$(PRINT_COMMAND) $(INFO) "[DEPEND] " $< ;
+PRINT_TEST= 	$(PRINT_COMMAND) $(INFO) "[TEST]" $(@:.test=) ;
 PRINT_CONFIG= 	$(PRINT_COMMAND) $(INFO_NONL) "[CONFIG]" "$(MIQ_ORIGTARGET)" ;
 PRINT_PKGCONFIG=$(PRINT_COMMAND) $(INFO) "[PKGCONFIG]" "$*" ;
 PRINT_LIBCONFIG=$(PRINT_COMMAND) $(INFO) "[LIBCONFIG]" "lib$*" ;
@@ -452,15 +464,15 @@ endif
 
 # Compilation
 $(MIQ_OBJDIR)%.c$(EXT.obj): 	%.c				$(MIQ_OBJDEPS)
-	$(PRINT_COMPILE) $(COMPILE.c)
+	$(PRINT_COMPILE) $(MAKE_CC)
 $(MIQ_OBJDIR)%.cpp$(EXT.obj): 	%.cpp 				$(MIQ_OBJDEPS)
-	$(PRINT_COMPILE) $(COMPILE.cpp)
+	$(PRINT_COMPILE) $(MAKE_CXX)
 $(MIQ_OBJDIR)%.cc$(EXT.obj): 	%.cc 				$(MIQ_OBJDEPS)
-	$(PRINT_COMPILE) $(COMPILE.cc)
+	$(PRINT_COMPILE) $(MAKE_CXX)
 $(MIQ_OBJDIR)%.s$(EXT.obj): 	%.s				$(MIQ_OBJDEPS)
-	$(PRINT_COMPILE) $(COMPILE.s)
+	$(PRINT_COMPILE) $(MAKE_AS)
 $(MIQ_OBJDIR)%.asm$(EXT.obj): 	%.asm				$(MIQ_OBJDEPS)
-	$(PRINT_COMPILE) $(COMPILE.asm)
+	$(PRINT_COMPILE) $(MAKE_AS)
 
 # Skip headers
 $(MIQ_OBJDIR)%.h$(EXT.obj):
@@ -484,11 +496,11 @@ MIQ_NOLIB=	$(MIQ_NOEXE:$(PFX.lib)%$(EXT.lib)=%)
 MIQ_NODLL=	$(MIQ_NOLIB:$(PFX.dll)%$(EXT.dll)=%)
 MIQ_OUT_SOURCES=$(SOURCES_$(MIQ_NODLL))
 $(MIQ_OUTLIB): $(MIQ_TOLINK) $$(MIQ_TOLINK)	 		$(MIQ_MAKEDEPS)
-	$(PRINT_LINK) $(LINK.lib)
+	$(PRINT_BUILD) $(MAKE_LIB)
 $(MIQ_OUTDLL): $(MIQ_TOLINK) $$(MIQ_TOLINK)			$(MIQ_MAKEDEPS)
-	$(PRINT_LINK) $(LINK.dll)
+	$(PRINT_BUILD) $(MAKE_DLL)
 $(MIQ_OUTEXE): $(MIQ_TOLINK) $$(MIQ_TOLINK)			$(MIQ_MAKEDEPS)
-	$(PRINT_LINK) $(LINK.exe)
+	$(PRINT_BUILD) $(MAKE_EXE)
 
 #------------------------------------------------------------------------------
 #   Package configuration
@@ -627,28 +639,50 @@ benchmark:	$(BENCHMARKS:%=%.benchmark)
 #  Install targets
 #------------------------------------------------------------------------------
 
-# Helper macro:
-# $1: install pattern
-# $2: what to install
-define install-rules
+# Installing the product: always need to build it first
+%.install: $(PACKAGE_INSTALL).mkdir-only %
+	$(PRINT_INSTALL) $(INSTALL_DATA) $* $(PACKAGE_INSTALL)
+%.install_exe: $(PACKAGE_INSTALL_BIN).mkdir-only %
+	$(PRINT_INSTALL) $(INSTALL_BIN) $* $(PACKAGE_INSTALL_BIN)
+%.install_lib: $(PACKAGE_INSTALL_LIB).mkdir-only %
+	$(PRINT_INSTALL) $(INSTALL_LIB) $* $(PACKAGE_INSTALL_LIB)
+%.install_dll: $(PACKAGE_INSTALL_DLL).mkdir-only %
+	$(PRINT_INSTALL) $(INSTALL_DLL)
+%.install_hdr: $(PACKAGE_INSTALL_HDR).mkdir-only %
+	$(PRINT_INSTALL) $(INSTALL_HDR) $* $(PACKAGE_INSTALL_HDR)
+%.install_shr: $(PACKAGE_INSTALL_SHR).mkdir-only %
+	$(PRINT_INSTALL) $(INSTALL_SHR) $* $(PACKAGE_INSTALL_SHR)
+%.install_man: $(PACKAGE_INSTALL_MAN).mkdir-only %
+	$(PRINT_COMMAND) $(MKDIR) -p $(MIQ_MANDIR)
+	$(PRINT_INSTALL) $(INSTALL_MAN) $* $(MIQ_MANDIR)
+%.install_doc: $(PACKAGE_INSTALL_DOC).mkdir-only %
+	$(PRINT_INSTALL) $(INSTALL_DOC) $* $(PACKAGE_INSTALL_DOC)
+%.install_etc: $(PACKAGE_INSTALL_SYSCONFIG).mkdir-only %
+	$(PRINT_INSTALL) $(INSTALL_ETC) $* $(PACKAGE_INSTALL_SYSCONFIG)
+%.install_pc: $(PACKAGE_INSTALL_PKGCONFIG).mkdir-only %
+	$(PRINT_INSTALL) $(INSTALL_DATA) $* $(PACKAGE_INSTALL_PKGCONFIG)
 
-$2.install.$1: $$(PACKAGE_INSTALL.$1)$(notdir $2)
-$$(PACKAGE_INSTALL.$1)$(notdir $2): $$(WARE_DIR.$1)$2		| .install-directories
-	$$(PRINT_INSTALL) $$(if $$(INSTALL.$1),$$(INSTALL.$1),$$(INSTALL)) $$(WARE_DIR.$1)$2 $$(PACKAGE_INSTALL.$1)
-
-$2.uninstall.$1:
-	$$(PRINT_UNINSTALL) $$(if $$(UNINSTALL.$1),$$(UNINSTALL.$1),$$(UNINSTALL)) $$(PACKAGE_INSTALL.$1)$2; $$(UNINSTALL.dir) $$(PACKAGE_INSTALL.$1) $$(UNINSTALL.ok)
-
-$2.reinstall: $2 $$(PACKAGE_INSTALL.$1).mkdir-only
-	$$(PRINT_INSTALL) $$(if $$(INSTALL.$1),$$(INSTALL.$1),$$(INSTALL)) $$(WARE_DIR.$1)$2 $$(PACKAGE_INSTALL.$1)
-
-.install-directories: $$(PACKAGE_INSTALL.$1).mkdir-only
-
-endef
-
-# Generate rules for all the installable stuff
-$(eval $(foreach i,$(INSTALLABLE),$(foreach w,$(WARE.$i),$(call install-rules,$i,$w))))
-.install:	.install-directories
+# Uninstalling the product
+%.uninstall:
+	$(PRINT_UNINSTALL) $(UNINSTALL) $(*F:%=$(PACKAGE_INSTALL)%) ; $(UNINSTALL_DIR) $(PACKAGE_INSTALL) $(UNINSTALL_OK)
+%.uninstall_exe:
+	$(PRINT_UNINSTALL) $(UNINSTALL) $(*F:%=$(PACKAGE_INSTALL_BIN)%) ; $(UNINSTALL_DIR) $(PACKAGE_INSTALL_BIN) $(UNINSTALL_OK)
+%.uninstall_lib:
+	$(PRINT_UNINSTALL) $(UNINSTALL) $(*F:%=$(PACKAGE_INSTALL_LIB)%) ; $(UNINSTALL_DIR) $(PACKAGE_INSTALL_LIB) $(UNINSTALL_OK)
+%.uninstall_dll:
+	$(PRINT_UNINSTALL) $(UNINSTALL) $(*F:%=$(PACKAGE_INSTALL_DLL)%) ; $(UNINSTALL_DIR) $(PACKAGE_INSTALL_DLL) $(UNINSTALL_OK)
+%.uninstall_hdr:
+	$(PRINT_UNINSTALL) $(UNINSTALL) $(*F:%=$(PACKAGE_INSTALL_HDR)%) ; $(UNINSTALL_DIR) $(PACKAGE_INSTALL_HDR) $(UNINSTALL_OK)
+%.uninstall_shr:
+	$(PRINT_UNINSTALL) $(UNINSTALL) $(*F:%=$(PACKAGE_INSTALL_SHR)%) ; $(UNINSTALL_DIR) $(PACKAGE_INSTALL_SHR) $(UNINSTALL_OK)
+%.uninstall_doc:
+	$(PRINT_UNINSTALL) $(UNINSTALL) $(*F:%=$(PACKAGE_INSTALL_DOC)%) ; $(UNINSTALL_DIR) $(PACKAGE_INSTALL_DOC) $(UNINSTALL_OK)
+%.uninstall_man:
+	$(PRINT_UNINSTALL) $(UNINSTALL) $(*F:%=$(PACKAGE_INSTALL_MAN)%)
+%.uninstall_etc:
+	$(PRINT_UNINSTALL) $(UNINSTALL) $(*F:%=$(PACKAGE_INSTALL_SYSCONFIG)%)
+%.uninstall_pc:
+	$(PRINT_UNINSTALL) $(UNINSTALL) $(*F:%=$(PACKAGE_INSTALL_PKGCONFIG)%) ; $(UNINSTALL_DIR) $(PACKAGE_INSTALL_PKGCONFIG) $(UNINSTALL_OK)
 
 
 #------------------------------------------------------------------------------
@@ -663,10 +697,10 @@ MIQ_PACKAGELDPATH=$(firstword 				\
 		$(PACKAGE_DLLS:%=-L$${libdir}))
 
 MIQ_GENPC=					  	 \
-	(echo 'prefix=$(PREFIX.bin)'			;\
+	(echo 'prefix=$(PREFIX_BIN)'			;\
 	echo 'exec_prefix=$${prefix}'			;\
-	echo 'libdir=$(PREFIX.lib)'			;\
-	echo 'includedir=$(PREFIX.header)'		;\
+	echo 'libdir=$(PREFIX_LIB)'			;\
+	echo 'includedir=$(PREFIX_HDR)'			;\
 	echo 'Name: $(PACKAGE_NAME)'			;\
 	echo 'Description: $(PACKAGE_DESCRIPTION)'	;\
 	echo 'Version: $(PACKAGE_VERSION)'		;\
@@ -677,7 +711,7 @@ MIQ_GENPC=					  	 \
 	echo 'Cflags: -I$${includedir}'			)
 
 $(MIQ_PACKAGE):						$(MIQ_MAKEDEPS)
-	$(PRINT_GENERATE)	$(MIQ_GENPC) > $@
+	$(PRINT_BUILD)	$(MIQ_GENPC) > $@
 
 
 #------------------------------------------------------------------------------
